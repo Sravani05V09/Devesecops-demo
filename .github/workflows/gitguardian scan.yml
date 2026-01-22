@@ -40,8 +40,4 @@ jobs:
         env:
           GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
 
-      # (Optional) Belt-and-suspenders: scan the working tree + all files explicitly
-      - name: GitGuardian path scan (all files)
-        run: ggshield secret scan path . --all-files
-        env:
-          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+     
