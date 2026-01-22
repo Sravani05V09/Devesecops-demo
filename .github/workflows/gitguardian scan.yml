@@ -1,22 +1,47 @@
+
 name: GitGuardian scan
- 
+
 on:
+  # Keep manual runs, but also scan on pushes/PRs to main so secrets get caught automatically
   workflow_dispatch:
- 
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
 jobs:
   scanning:
     runs-on: ubuntu-latest
     name: GitGuardian scan
- 
+
     steps:
-      - name: Checkout
+      - name: Checkout (full history)
         uses: actions/checkout@v4
- 
-      - name: GitGuardian Full Repo Scan (JSON Output)
+        with:
+          fetch-depth: 0        # IMPORTANT: unshallow the repo so history is scanned
+
+      - name: Show repo state
         run: |
+          git --version
+          git log --oneline -5 || true
           ls -al
-          pip install --upgrade ggshield
-          ggshield api-status
-          ggshield secret scan ci
+
+      - name: Install ggshield
+        run: pip install --upgrade ggshield
+
+      - name: Check API status
+        run: ggshield api-status
+        env:
+          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+
+      # Primary CI scan (uses CI heuristics and git context)
+      - name: GitGuardian CI scan
+        run: ggshield secret scan ci
+        env:
+          GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+
+      # (Optional) Belt-and-suspenders: scan the working tree + all files explicitly
+      - name: GitGuardian path scan (all files)
+        run: ggshield secret scan path . --all-files
         env:
           GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
